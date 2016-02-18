@@ -69,10 +69,16 @@ func makePooledHandle(middlewares []Middleware, handle httprouter.Handle) httpro
 	pool := sync.Pool{}
 
 	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-		h := pool.Get()
-		if h == nil {
+		obj := pool.Get()
+		var h httprouter.Handle
+
+		if obj != nil {
+			h = obj.(httprouter.Handle)
+		} else {
 			h = makeHandle(middlewares, handle)
 		}
+
+		h(w, r, p)
 		pool.Put(h)
 	}
 }
