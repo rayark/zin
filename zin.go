@@ -60,8 +60,19 @@ func (g *MuxGroup) Use(middlewares ...Middleware) {
 
 type RegisterFunc func(path string, handle httprouter.Handle)
 
-func (g *MuxGroup) R(r RegisterFunc, path string, handle httprouter.Handle) {
-	r(pathJoin(g.basePath, path), makePooledHandle(g.middlewares, handle))
+func (g *MuxGroup) R(r RegisterFunc, p string, handle httprouter.Handle) {
+	r(g.Path(p), makePooledHandle(g.middlewares, handle))
+}
+
+func (g *MuxGroup) Path(p string) string {
+	return pathJoin(g.basePath, p)
+}
+
+func (g *MuxGroup) NotFound(h http.Handler) http.Handler {
+	handle := makePooledHandle(g.middlewares, WrapH(h))
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		handle(w, r, nil)
+	})
 }
 
 func makePooledHandle(middlewares []Middleware, handle httprouter.Handle) httprouter.Handle {
