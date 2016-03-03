@@ -9,9 +9,9 @@ import (
 )
 
 func Logger(h httprouter.Handle) httprouter.Handle {
-
+	var buf bytes.Buffer
 	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-		var buf bytes.Buffer
+		buf.Reset()
 		proxyWriter := NewProxyWriter(w)
 		printStart(&buf, r)
 		t1 := time.Now()
@@ -23,16 +23,23 @@ func Logger(h httprouter.Handle) httprouter.Handle {
 }
 
 func printStart(buf *bytes.Buffer, r *http.Request) {
-	buf.WriteString("Started ")
 	cW(buf, bMagenta, "%s ", r.Method)
 	cW(buf, nBlue, "%q ", r.URL.String())
-	buf.WriteString("from ")
-	buf.WriteString(r.RemoteAddr)
+	buf.WriteString(findRemoteAddr(r))
+}
+
+func findRemoteAddr(r *http.Request) string {
+	addr := r.Header.Get("X-Forwarded-For")
+	if addr == "" {
+		addr = r.RemoteAddr
+	}
+
+	return addr
 }
 
 func printEnd(buf *bytes.Buffer, w *ProxyWriter, dt time.Duration) {
 
-	buf.WriteString("Returning ")
+	buf.WriteString(" | ")
 	status := w.Status()
 	if status < 200 {
 		cW(buf, bBlue, "%03d", status)
