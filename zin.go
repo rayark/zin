@@ -123,7 +123,11 @@ func makeHandle(middlewares []Middleware, handle httprouter.Handle) httprouter.H
 }
 
 func pathJoin(base string, r string) string {
-	return path.Join(base, r)
+	path := path.Join(base, r)
+	if len(r) > 0 && r[len(r)-1] == '/' {
+		path = path + "/"
+	}
+	return path
 }
 
 func (g *MuxGroup) Group(path string, middlewares ...Middleware) *MuxGroup {
