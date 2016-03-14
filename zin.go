@@ -124,7 +124,7 @@ func makeHandle(middlewares []Middleware, handle httprouter.Handle) httprouter.H
 
 func pathJoin(base string, r string) string {
 	path := path.Join(base, r)
-	if len(r) > 0 && r[len(r)-1] == '/' {
+	if len(r) > 0 && r[len(r)-1] == '/' && path[len(r)-1] != '/' {
 		path = path + "/"
 	}
 	return path
