@@ -1,6 +1,8 @@
 package middleware
 
 import (
+	"bufio"
+	"net"
 	"net/http"
 )
 
@@ -36,4 +38,8 @@ func (w *ProxyWriter) Write(b []byte) (int, error) {
 	size, err := w.ResponseWriter.Write(b)
 	w.size += size
 	return size, err
+}
+
+func (w *ProxyWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	return w.ResponseWriter.(http.Hijacker).Hijack()
 }
