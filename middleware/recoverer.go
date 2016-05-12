@@ -1,9 +1,8 @@
 package middleware
 
 import (
-	"bytes"
+	log "github.com/Sirupsen/logrus"
 	"github.com/julienschmidt/httprouter"
-	"log"
 	"net/http"
 	"runtime/debug"
 )
@@ -17,18 +16,13 @@ func Recoverer(h httprouter.Handle) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		defer func() {
 			if err := recover(); err != nil {
-				printPanic(err)
-				debug.PrintStack()
+				log.WithFields(log.Fields{
+					"call_stack": string(debug.Stack()),
+				}).Errorf("panic: %+v", err)
 				http.Error(w, http.StatusText(500), 500)
 			}
 		}()
 
 		h(w, r, p)
 	}
-}
-
-func printPanic(err interface{}) {
-	var buf bytes.Buffer
-	cW(&buf, bRed, "panic: %+v", err)
-	log.Print(buf.String())
 }
