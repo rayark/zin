@@ -16,7 +16,7 @@ func LoggerH(h http.Handler) LoggerHandler {
 	return LoggerHandler{handler: h}
 }
 
-func (lh *LoggerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (lh LoggerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	proxyWriter := NewProxyWriter(w)
 	t1 := time.Now()
 	lh.handler.ServeHTTP(proxyWriter, r)
@@ -65,7 +65,7 @@ func logResult(proxyWriter *ProxyWriter, r *http.Request, t time.Duration) {
 	}
 
 	if status <= 399 && elapsed <= 0.5 {
-		entry.Debug(summary)
+		entry.Info(summary)
 	} else if status <= 499 && elapsed < 5 {
 		entry.Warn(summary)
 	} else if status <= 599 {
