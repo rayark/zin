@@ -4,6 +4,7 @@ import (
 	"fmt"
 	log "github.com/Sirupsen/logrus"
 	"github.com/julienschmidt/httprouter"
+	"net"
 	"net/http"
 	"time"
 )
@@ -37,7 +38,7 @@ func Logger(h httprouter.Handle) httprouter.Handle {
 func findRemoteAddr(r *http.Request) string {
 	addr := r.Header.Get("X-Forwarded-For")
 	if addr == "" {
-		addr = r.RemoteAddr
+		addr, _, _ = net.SplitHostPort(r.RemoteAddr)
 	}
 
 	return addr
@@ -45,28 +46,29 @@ func findRemoteAddr(r *http.Request) string {
 
 func logResult(proxyWriter *ProxyWriter, r *http.Request, t time.Duration) {
 	method := r.Method
-	url := r.URL.String()
+	uri := r.URL.String()
 	sourceAddr := findRemoteAddr(r)
-	elapsed := t.Seconds()
+	msec := t.Nanoseconds() / 1000000
 	status := proxyWriter.Status()
-
+	uagent := r.Header.Get("User-Agent")
 	entry := log.WithFields(log.Fields{
-		"method":      method,
-		"url":         url,
-		"source_addr": sourceAddr,
-		"elapsed":     elapsed,
-		"status":      status,
+		"method": method,
+		"uri":    uri,
+		"addr":   sourceAddr,
+		"msec":   msec,
+		"status": string(status),
+		"uagent": uagent,
 	})
 
-	summary := fmt.Sprintf("%d %s %s from %s", status, method, url, sourceAddr)
+	summary := fmt.Sprintf("%d %s %s from %s", status, method, uri, sourceAddr)
 
-	if elapsed > 0.5 {
-		summary = summary + fmt.Sprintf(" (%f sec)", elapsed)
+	if msec > 500 {
+		summary = summary + fmt.Sprintf(" (%f msec)", msec)
 	}
 
-	if status <= 399 && elapsed <= 0.5 {
+	if status <= 399 && msec <= 500 {
 		entry.Info(summary)
-	} else if status <= 499 && elapsed < 5 {
+	} else if status <= 499 && msec <= 5000 {
 		entry.Warn(summary)
 	} else if status <= 599 {
 		entry.Error(summary)
