@@ -6,6 +6,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"net"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -56,7 +57,7 @@ func logResult(proxyWriter *ProxyWriter, r *http.Request, t time.Duration) {
 		"uri":    uri,
 		"addr":   sourceAddr,
 		"msec":   msec,
-		"status": string(status),
+		"status": strconv.Itoa(status),
 		"uagent": uagent,
 	})
 
