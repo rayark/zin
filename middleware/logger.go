@@ -64,7 +64,7 @@ func logResult(proxyWriter *ProxyWriter, r *http.Request, t time.Duration) {
 	summary := fmt.Sprintf("%d %s %s from %s", status, method, uri, sourceAddr)
 
 	if msec > 500 {
-		summary = summary + fmt.Sprintf(" (%f msec)", msec)
+		summary = summary + fmt.Sprintf(" (%d msec)", msec)
 	}
 
 	if status <= 399 && msec <= 500 {
