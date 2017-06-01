@@ -2,12 +2,13 @@ package middleware
 
 import (
 	"fmt"
-	log "github.com/Sirupsen/logrus"
-	"github.com/julienschmidt/httprouter"
 	"net"
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/julienschmidt/httprouter"
+	log "github.com/sirupsen/logrus"
 )
 
 type LoggerHandler struct {

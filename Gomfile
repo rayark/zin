@@ -1,2 +1,2 @@
 gom 'github.com/julienschmidt/httprouter'
-gom 'github.com/Sirupsen/logrus'
+gom 'github.com/sirupsen/logrus'
