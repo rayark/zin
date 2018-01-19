@@ -22,7 +22,7 @@ func TestHMACAuthenticator(t *testing.T) {
 	secretInBytes := []byte("ThisIsSecret")
 	secretInBase64 := base64.StdEncoding.EncodeToString(secretInBytes)
 	message := []byte("this is http body content")
-	hmac := computeHMAC256(message, secretInBase64)
+	hmac := computeHMAC256(message, secretInBytes)
 
 	hmacWrapper := NewHMACAuthenticator(hmacHeaderKey, secretInBase64)
 	router := httprouter.New()
