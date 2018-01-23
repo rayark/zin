@@ -2,34 +2,40 @@ package middleware
 
 import (
 	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/base64"
+	"crypto/sha1"
+	"encoding/hex"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/rayark/zin"
 )
 
-// NewHMACAuthenticator returns a wrapper middleware to add with
-func NewHMACAuthenticator(headerKey, secret string) zin.Middleware {
-	key, err := base64.StdEncoding.DecodeString(secret)
-	if err != nil {
-		return nil
-	}
+// HMACSHA1Signer returns a middleware wrapper to add hmac signing string in
+// response header
+func HMACSHA1Signer(hmacHeaderKey, nounceHeaderKey string, secret []byte) zin.Middleware {
 	return func(h httprouter.Handle) httprouter.Handle {
 		return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 			deferWriter := NewDeferWriter(w)
 			defer deferWriter.WriteAll()
 
+			key := secret
+			if nounceHeaderKey != "" {
+				nounceInHex := r.Header.Get(nounceHeaderKey)
+				nounce, err := hex.DecodeString(nounceInHex)
+				if err == nil {
+					key = append(key, nounce...)
+				}
+			}
+
 			h(deferWriter, r, p)
-			hmac := computeHMAC256(deferWriter.Bytes(), key)
-			deferWriter.Header().Set(headerKey, hmac)
+			hmacSignature := generateSignature(deferWriter.Bytes(), key)
+			deferWriter.Header().Set(hmacHeaderKey, hmacSignature)
 		}
 	}
 }
 
-func computeHMAC256(msg, key []byte) string {
-	h := hmac.New(sha256.New, key)
+func generateSignature(msg, key []byte) string {
+	h := hmac.New(sha1.New, key)
 	h.Write(msg)
-	return base64.StdEncoding.EncodeToString(h.Sum(nil))
+	return "sha1=" + hex.EncodeToString(h.Sum(nil))
 }
