@@ -70,7 +70,7 @@ func logResult(proxyWriter *ProxyWriter, r *http.Request, t time.Duration) {
 
 	if status <= 399 && msec <= 500 {
 		entry.Info(summary)
-	} else if status <= 499 && msec <= 5000 {
+	} else if status <= 499 {
 		entry.Warn(summary)
 	} else if status <= 599 {
 		entry.Error(summary)
