@@ -1,10 +1,11 @@
 package zin
 
 import (
-	"github.com/julienschmidt/httprouter"
 	"net/http"
 	"path"
 	"sync"
+
+	"github.com/julienschmidt/httprouter"
 )
 
 type StdMiddlware func(http.Handler) http.Handler

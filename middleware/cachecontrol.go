@@ -2,8 +2,9 @@ package middleware
 
 import (
 	"fmt"
-	"github.com/julienschmidt/httprouter"
 	"net/http"
+
+	"github.com/julienschmidt/httprouter"
 )
 
 func CacheControl(age int) func(h httprouter.Handle) httprouter.Handle {
