@@ -300,3 +300,28 @@ func BenchmarkMakePooledHandle(t *testing.B) {
 	}
 
 }
+
+func TestMatchedRoutePathKey(t *testing.T) {
+	var matchedRoute string
+
+	testRoute := "/a/:b"
+
+	router := httprouter.New()
+
+	group := NewGroup("/")
+	group.R(router.GET, testRoute, func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+		ctx := r.Context()
+		matchedRoute = ctx.Value(MatchedRoutePathKey).(string)
+	})
+
+	r, err := http.NewRequest("GET", "http://example.com/a/aaa", nil)
+	if err != nil {
+		panic(err)
+	}
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, r)
+
+	if matchedRoute != testRoute {
+		t.Fail()
+	}
+}

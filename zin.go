@@ -1,6 +1,7 @@
 package zin
 
 import (
+	"context"
 	"net/http"
 	"path"
 	"sync"
@@ -82,7 +83,9 @@ func (g *MuxGroup) Use(middlewares ...Middleware) {
 type RegisterFunc func(path string, handle httprouter.Handle)
 
 func (g *MuxGroup) R(r RegisterFunc, p string, handle httprouter.Handle) {
-	r(g.Path(p), makePooledHandle(g.middlewares, handle))
+	route := g.Path(p)
+	m := append([]Middleware{addRouteToCtxMiddleware(route)}, g.middlewares...)
+	r(route, makePooledHandle(m, handle))
 }
 
 func (g *MuxGroup) Path(p string) string {
@@ -94,6 +97,21 @@ func (g *MuxGroup) NotFound(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		handle(w, r, nil)
 	})
+}
+
+type matchKey struct{}
+
+var MatchedRoutePathKey = matchKey{}
+
+func addRouteToCtxMiddleware(route string) Middleware {
+	return func(h httprouter.Handle) httprouter.Handle {
+		return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+			ctx := r.Context()
+			ctx = context.WithValue(ctx, MatchedRoutePathKey, route)
+
+			h(w, r.WithContext(ctx), p)
+		}
+	}
 }
 
 func makePooledHandle(middlewares []Middleware, handle httprouter.Handle) httprouter.Handle {
