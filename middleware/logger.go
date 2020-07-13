@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/rayark/zin"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -47,15 +48,20 @@ func findRemoteAddr(r *http.Request) string {
 }
 
 func logResult(proxyWriter *ProxyWriter, r *http.Request, t time.Duration) {
+	ctx := r.Context()
+
 	method := r.Method
 	uri := r.URL.String()
+	route, _ := ctx.Value(zin.MatchedRoutePathKey).(string)
 	sourceAddr := findRemoteAddr(r)
 	msec := t.Nanoseconds() / 1000000
 	status := proxyWriter.Status()
 	uagent := r.Header.Get("User-Agent")
+
 	entry := log.WithFields(log.Fields{
 		"method": method,
 		"uri":    uri,
+		"route":  route,
 		"addr":   sourceAddr,
 		"msec":   msec,
 		"status": strconv.Itoa(status),
