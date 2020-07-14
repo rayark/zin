@@ -84,7 +84,7 @@ type RegisterFunc func(path string, handle httprouter.Handle)
 
 func (g *MuxGroup) R(r RegisterFunc, p string, handle httprouter.Handle) {
 	route := g.Path(p)
-	m := append([]Middleware{addRouteToCtxMiddleware(route)}, g.middlewares...)
+	m := append(g.middlewares, addRouteToCtxMiddleware(route))
 	r(route, makePooledHandle(m, handle))
 }
 
