@@ -149,12 +149,12 @@ func pathJoin(base string, r string) string {
 	return path
 }
 
-// Group returns new MuxGroup with appendding inputs middlewares to the end of current muxgroup's middleware
+// Group returns new MuxGroup with appending inputs middlewares to the end of current muxgroup's middleware
 func (g *MuxGroup) Group(path string, middlewares ...Middleware) *MuxGroup {
 	return NewGroup(pathJoin(g.basePath, path), safeAppend(g.middlewares, middlewares...)...)
 }
 
-// Pack returns new MuxGroup with appendding current muxgroup's middlewares to the end of input middlewarse
+// Pack returns new MuxGroup with appending current muxgroup's middlewares to the end of input middlewarse
 func (g *MuxGroup) Pack(path string, middlewares ...Middleware) *MuxGroup {
 	return NewGroup(pathJoin(g.basePath, path), safeAppend(middlewares, g.middlewares...)...)
 }
