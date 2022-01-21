@@ -2,11 +2,12 @@ package zin
 
 import (
 	"fmt"
-	"github.com/julienschmidt/httprouter"
 	"net/http"
 	"net/http/httptest"
 	"sync"
 	"testing"
+
+	"github.com/julienschmidt/httprouter"
 )
 
 func TestMakeHandle(t *testing.T) {
@@ -259,6 +260,149 @@ func TestChildGroup(t *testing.T) {
 		t.Fail()
 	}
 
+}
+
+func TestChildPack(t *testing.T) {
+
+	data := ""
+	m1 := func(h httprouter.Handle) httprouter.Handle {
+		return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+			t.Log("m1")
+			data = data + "A"
+			h(w, r, p)
+		}
+	}
+
+	m2 := func(h httprouter.Handle) httprouter.Handle {
+		return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+			t.Log("m2")
+			data = data + "B"
+			h(w, r, p)
+		}
+	}
+
+	m3 := func(h httprouter.Handle) httprouter.Handle {
+		return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+			t.Log("m3")
+			data = data + "C"
+			h(w, r, p)
+		}
+	}
+
+	router := httprouter.New()
+
+	group := NewGroup("/test", m2, m1)
+	child := group.Pack("/admin", m3)
+
+	child.R(router.GET, "/", func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+		data = data + "D"
+		t.Log(data)
+		fmt.Fprint(w, data)
+	})
+
+	r, err := http.NewRequest("GET", "http://example.com/test/admin", nil)
+	if err != nil {
+		panic(err)
+	}
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, r)
+
+	if w.Body.String() != "ABCD" {
+		t.Fail()
+	}
+
+	if data != "ABCD" {
+		t.Fail()
+	}
+}
+
+func TestMultipleGroup(t *testing.T) {
+
+	data := ""
+	m1 := func(h httprouter.Handle) httprouter.Handle {
+		return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+			t.Log("m1")
+			data = data + "A"
+			h(w, r, p)
+		}
+	}
+
+	m2 := func(h httprouter.Handle) httprouter.Handle {
+		return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+			t.Log("m2")
+			data = data + "B"
+			h(w, r, p)
+		}
+	}
+
+	m3 := func(h httprouter.Handle) httprouter.Handle {
+		return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+			t.Log("m3")
+			data = data + "C"
+			h(w, r, p)
+		}
+	}
+
+	m4 := func(h httprouter.Handle) httprouter.Handle {
+		return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+			t.Log("m4")
+			data = data + "D"
+			h(w, r, p)
+		}
+	}
+
+	router := httprouter.New()
+
+	base := NewGroup("/", m2, m1)
+	group1 := base.Pack("/", m3)
+	group2 := base.Pack("/", m4)
+
+	group1.R(router.GET, "/test1", func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+		data = data + "1"
+		t.Log(data)
+		fmt.Fprint(w, data)
+	})
+	group2.R(router.GET, "/test2", func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+		data = data + "2"
+		t.Log(data)
+		fmt.Fprint(w, data)
+	})
+
+	{
+		data = ""
+		r, err := http.NewRequest("GET", "http://example.com/test1", nil)
+		if err != nil {
+			panic(err)
+		}
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, r)
+
+		if w.Body.String() != "ABC1" {
+			t.Fail()
+		}
+
+		if data != "ABC1" {
+			t.Fail()
+		}
+	}
+
+	{
+		data = ""
+		r, err := http.NewRequest("GET", "http://example.com/test2", nil)
+		if err != nil {
+			panic(err)
+		}
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, r)
+
+		if w.Body.String() != "ABD2" {
+			t.Fail()
+		}
+
+		if data != "ABD2" {
+			t.Fail()
+		}
+	}
 }
 
 func BenchmarkMakePooledHandle(t *testing.B) {
