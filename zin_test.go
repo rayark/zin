@@ -316,6 +316,7 @@ func TestChildPack(t *testing.T) {
 	}
 }
 
+// TestMultipleGroup will only pass when uses safeAppend, will fail with append()
 func TestMultipleGroup(t *testing.T) {
 
 	data := ""
@@ -351,11 +352,20 @@ func TestMultipleGroup(t *testing.T) {
 		}
 	}
 
+	m5 := func(h httprouter.Handle) httprouter.Handle {
+		return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+			t.Log("m4")
+			data = data + "E"
+			h(w, r, p)
+		}
+	}
+
 	router := httprouter.New()
 
-	base := NewGroup("/", m2, m1)
-	group1 := base.Pack("/", m3)
-	group2 := base.Pack("/", m4)
+	base := NewGroup("/", m5, m4)
+	base = base.Group("/", m3) // do tricks to let slice cap gain
+	group1 := base.Group("/", m1)
+	group2 := base.Group("/", m2)
 
 	group1.R(router.GET, "/test1", func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		data = data + "1"
@@ -377,11 +387,11 @@ func TestMultipleGroup(t *testing.T) {
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, r)
 
-		if w.Body.String() != "ABC1" {
+		if w.Body.String() != "ACDE1" {
 			t.Fail()
 		}
 
-		if data != "ABC1" {
+		if data != "ACDE1" {
 			t.Fail()
 		}
 	}
@@ -395,11 +405,109 @@ func TestMultipleGroup(t *testing.T) {
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, r)
 
-		if w.Body.String() != "ABD2" {
+		if w.Body.String() != "BCDE2" {
 			t.Fail()
 		}
 
-		if data != "ABD2" {
+		if data != "BCDE2" {
+			t.Fail()
+		}
+	}
+}
+
+func TestMultipleGroupWithPack(t *testing.T) {
+
+	data := ""
+	m1 := func(h httprouter.Handle) httprouter.Handle {
+		return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+			t.Log("m1")
+			data = data + "A"
+			h(w, r, p)
+		}
+	}
+
+	m2 := func(h httprouter.Handle) httprouter.Handle {
+		return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+			t.Log("m2")
+			data = data + "B"
+			h(w, r, p)
+		}
+	}
+
+	m3 := func(h httprouter.Handle) httprouter.Handle {
+		return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+			t.Log("m3")
+			data = data + "C"
+			h(w, r, p)
+		}
+	}
+
+	m4 := func(h httprouter.Handle) httprouter.Handle {
+		return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+			t.Log("m4")
+			data = data + "D"
+			h(w, r, p)
+		}
+	}
+
+	m5 := func(h httprouter.Handle) httprouter.Handle {
+		return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+			t.Log("m4")
+			data = data + "E"
+			h(w, r, p)
+		}
+	}
+
+	router := httprouter.New()
+
+	base := NewGroup("/", m3, m2)
+	base = base.Group("/", m1) // do tricks to let slice cap gain
+	group1 := base.Pack("/", m4)
+	group2 := base.Pack("/", m5)
+
+	group1.R(router.GET, "/test1", func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+		data = data + "1"
+		t.Log(data)
+		fmt.Fprint(w, data)
+	})
+	group2.R(router.GET, "/test2", func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+		data = data + "2"
+		t.Log(data)
+		fmt.Fprint(w, data)
+	})
+
+	{
+		data = ""
+		r, err := http.NewRequest("GET", "http://example.com/test1", nil)
+		if err != nil {
+			panic(err)
+		}
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, r)
+
+		if w.Body.String() != "ABCD1" {
+			t.Fail()
+		}
+
+		if data != "ABCD1" {
+			t.Fail()
+		}
+	}
+
+	{
+		data = ""
+		r, err := http.NewRequest("GET", "http://example.com/test2", nil)
+		if err != nil {
+			panic(err)
+		}
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, r)
+
+		if w.Body.String() != "ABCE2" {
+			t.Fail()
+		}
+
+		if data != "ABCE2" {
 			t.Fail()
 		}
 	}
