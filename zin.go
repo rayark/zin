@@ -84,7 +84,7 @@ type RegisterFunc func(path string, handle httprouter.Handle)
 
 func (g *MuxGroup) R(r RegisterFunc, p string, handle httprouter.Handle) {
 	route := g.Path(p)
-	m := append(g.middlewares, addRouteToCtxMiddleware(route))
+	m := safeAppend(g.middlewares, addRouteToCtxMiddleware(route))
 	r(route, makePooledHandle(m, handle))
 }
 
@@ -149,6 +149,19 @@ func pathJoin(base string, r string) string {
 	return path
 }
 
+// Group returns new MuxGroup with appending inputs middlewares to the end of current muxgroup's middleware
 func (g *MuxGroup) Group(path string, middlewares ...Middleware) *MuxGroup {
-	return NewGroup(pathJoin(g.basePath, path), append(g.middlewares, middlewares...)...)
+	return NewGroup(pathJoin(g.basePath, path), safeAppend(g.middlewares, middlewares...)...)
+}
+
+// Pack returns new MuxGroup with appending current muxgroup's middlewares to the end of input middlewarse
+func (g *MuxGroup) Pack(path string, middlewares ...Middleware) *MuxGroup {
+	return NewGroup(pathJoin(g.basePath, path), safeAppend(middlewares, g.middlewares...)...)
+}
+
+func safeAppend(middlewaresA []Middleware, middlewaresB ...Middleware) []Middleware {
+	mws := make([]Middleware, 0, len(middlewaresA)+len(middlewaresB))
+	mws = append(mws, middlewaresA...)
+	mws = append(mws, middlewaresB...)
+	return mws
 }
