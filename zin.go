@@ -101,7 +101,7 @@ func (g *MuxGroup) NotFound(h http.Handler) http.Handler {
 
 type zinContextKey string
 
-const MatchedRoutePathKey = zinContextKey("MatchRoutePath")
+const MatchedRoutePathKey = zinContextKey("MatchedRoutePath")
 
 func addRouteToCtxMiddleware(route string) Middleware {
 	return func(h httprouter.Handle) httprouter.Handle {
