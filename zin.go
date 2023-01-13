@@ -1,6 +1,18 @@
+/* (C)2023 Rayark Inc. - All Rights Reserved
+ * Rayark Confidential
+ *
+ * NOTICE: The intellectual and technical concepts contained herein are
+ * proprietary to or under control of Rayark Inc. and its affiliates.
+ * The information herein may be covered by patents, patents in process,
+ * and are protected by trade secret or copyright law.
+ * You may not disseminate this information or reproduce this material
+ * unless otherwise prior agreed by Rayark Inc. in writing.
+ */
+
 package zin
 
 import (
+	"context"
 	"net/http"
 	"path"
 	"sync"
@@ -75,6 +87,8 @@ func NewGroup(basePath string, middlewares ...Middleware) *MuxGroup {
 	}
 }
 
+// Deprecated. Use Group or Pack.
+// https://stackoverflow.com/questions/53572736/append-to-a-new-slice-affect-original-slice
 func (g *MuxGroup) Use(middlewares ...Middleware) {
 	g.middlewares = append(g.middlewares, middlewares...)
 }
@@ -82,7 +96,9 @@ func (g *MuxGroup) Use(middlewares ...Middleware) {
 type RegisterFunc func(path string, handle httprouter.Handle)
 
 func (g *MuxGroup) R(r RegisterFunc, p string, handle httprouter.Handle) {
-	r(g.Path(p), makePooledHandle(g.middlewares, handle))
+	route := g.Path(p)
+	m := safeAppend(g.middlewares, addRouteToCtxMiddleware(route))
+	r(route, makePooledHandle(m, handle))
 }
 
 func (g *MuxGroup) Path(p string) string {
@@ -94,6 +110,28 @@ func (g *MuxGroup) NotFound(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		handle(w, r, nil)
 	})
+}
+
+type zinContextKey int
+
+const MatchedRoutePathKey zinContextKey = iota
+
+// TODO refactor to middleware package
+func addRouteToCtxMiddleware(route string) Middleware {
+	return func(h httprouter.Handle) httprouter.Handle {
+		return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+			ctx := r.Context()
+			ctx = context.WithValue(ctx, MatchedRoutePathKey, route)
+
+			h(w, r.WithContext(ctx), p)
+		}
+	}
+}
+
+// TODO move with addRouteToCtxMiddleware
+func GetRouteFromCtx(ctx context.Context) (string, bool) {
+	route, ok := ctx.Value(MatchedRoutePathKey).(string)
+	return route, ok
 }
 
 func makePooledHandle(middlewares []Middleware, handle httprouter.Handle) httprouter.Handle {
@@ -131,6 +169,19 @@ func pathJoin(base string, r string) string {
 	return path
 }
 
+// Group returns new MuxGroup with appending inputs middlewares to the end of current muxgroup's middleware
 func (g *MuxGroup) Group(path string, middlewares ...Middleware) *MuxGroup {
-	return NewGroup(pathJoin(g.basePath, path), append(g.middlewares, middlewares...)...)
+	return NewGroup(pathJoin(g.basePath, path), safeAppend(g.middlewares, middlewares...)...)
+}
+
+// Pack returns new MuxGroup with appending current muxgroup's middlewares to the end of input middlewarse
+func (g *MuxGroup) Pack(path string, middlewares ...Middleware) *MuxGroup {
+	return NewGroup(pathJoin(g.basePath, path), safeAppend(middlewares, g.middlewares...)...)
+}
+
+func safeAppend(middlewaresA []Middleware, middlewaresB ...Middleware) []Middleware {
+	mws := make([]Middleware, 0, len(middlewaresA)+len(middlewaresB))
+	mws = append(mws, middlewaresA...)
+	mws = append(mws, middlewaresB...)
+	return mws
 }
