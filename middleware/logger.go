@@ -19,7 +19,6 @@ import (
 	"time"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/rayark/zin/v2"
 )
 
 type LoggerHandler struct {
@@ -65,7 +64,7 @@ func logResult(proxyWriter *ProxyWriter, r *http.Request, t time.Duration, log L
 
 	method := r.Method
 	uri := r.URL.String()
-	route, _ := zin.GetRouteFromCtx(ctx)
+	route, _ := GetRouteFromContext(ctx)
 	sourceAddr := findRemoteAddr(r)
 	msec := t.Milliseconds()
 	status := proxyWriter.Status()
