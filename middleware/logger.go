@@ -19,7 +19,7 @@ import (
 	"time"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/rayark/zin"
+	"github.com/rayark/zin/v2"
 	log "github.com/sirupsen/logrus"
 )
 
