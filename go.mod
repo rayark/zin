@@ -1,4 +1,4 @@
-module github.com/rayark/zin
+module github.com/rayark/zin/v2
 
 go 1.12
 

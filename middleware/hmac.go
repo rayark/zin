@@ -18,7 +18,7 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/rayark/zin"
+	"github.com/rayark/zin/v2"
 )
 
 // HMACSHA1Signer returns a middleware wrapper to add hmac signing string in

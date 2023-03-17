@@ -20,7 +20,7 @@ import (
 	"testing"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/rayark/zin"
+	"github.com/rayark/zin/v2"
 )
 
 func middlewareCompressorTest(t *testing.T, reqHeaders map[string]string, respBody string) *httptest.ResponseRecorder {

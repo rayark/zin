@@ -19,16 +19,16 @@ import (
 	"time"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/rayark/zin"
-	log "github.com/sirupsen/logrus"
+	"github.com/rayark/zin/v2"
 )
 
 type LoggerHandler struct {
 	handler http.Handler
+	entry   LogEntry
 }
 
-func LoggerH(h http.Handler) LoggerHandler {
-	return LoggerHandler{handler: h}
+func LoggerH(h http.Handler, entry LogEntry) LoggerHandler {
+	return LoggerHandler{handler: h, entry: entry}
 }
 
 func (lh LoggerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -36,16 +36,18 @@ func (lh LoggerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	t1 := time.Now()
 	lh.handler.ServeHTTP(proxyWriter, r)
 	t2 := time.Now()
-	logResult(proxyWriter, r, t2.Sub(t1))
+	logResult(proxyWriter, r, t2.Sub(t1), lh.entry)
 }
 
-func Logger(h httprouter.Handle) httprouter.Handle {
-	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-		proxyWriter := NewProxyWriter(w)
-		t1 := time.Now()
-		h(proxyWriter, r, p)
-		t2 := time.Now()
-		logResult(proxyWriter, r, t2.Sub(t1))
+func Logger(entry LogEntry) func(httprouter.Handle) httprouter.Handle {
+	return func(h httprouter.Handle) httprouter.Handle {
+		return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+			proxyWriter := NewProxyWriter(w)
+			t1 := time.Now()
+			h(proxyWriter, r, p)
+			t2 := time.Now()
+			logResult(proxyWriter, r, t2.Sub(t1), entry)
+		}
 	}
 }
 
@@ -58,26 +60,25 @@ func findRemoteAddr(r *http.Request) string {
 	return addr
 }
 
-func logResult(proxyWriter *ProxyWriter, r *http.Request, t time.Duration) {
+func logResult(proxyWriter *ProxyWriter, r *http.Request, t time.Duration, log LogEntry) {
 	ctx := r.Context()
 
 	method := r.Method
 	uri := r.URL.String()
 	route, _ := zin.GetRouteFromCtx(ctx)
 	sourceAddr := findRemoteAddr(r)
-	msec := t.Nanoseconds() / 1000000
+	msec := t.Milliseconds()
 	status := proxyWriter.Status()
 	uagent := r.Header.Get("User-Agent")
 
-	entry := log.WithFields(log.Fields{
-		"method": method,
-		"uri":    uri,
-		"route":  route,
-		"addr":   sourceAddr,
-		"msec":   msec,
-		"status": strconv.Itoa(status),
-		"uagent": uagent,
-	})
+	entry := log.
+		WithField("method", method).
+		WithField("uri", uri).
+		WithField("route", route).
+		WithField("addr", sourceAddr).
+		WithField("msec", msec).
+		WithField("status", strconv.Itoa(status)).
+		WithField("uagent", uagent)
 
 	summary := fmt.Sprintf("%d %s %s from %s", status, method, uri, sourceAddr)
 
@@ -86,10 +87,10 @@ func logResult(proxyWriter *ProxyWriter, r *http.Request, t time.Duration) {
 	}
 
 	if status <= 399 && msec <= 500 {
-		entry.Info(summary)
+		entry.Infof(summary)
 	} else if status <= 499 {
-		entry.Warn(summary)
+		entry.Warningf(summary)
 	} else if status <= 599 {
-		entry.Error(summary)
+		entry.Errorf(summary)
 	}
 }

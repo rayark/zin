@@ -18,7 +18,7 @@ import (
 	"testing"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/rayark/zin"
+	"github.com/rayark/zin/v2"
 )
 
 const (
