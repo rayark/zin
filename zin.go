@@ -12,12 +12,12 @@
 package zin
 
 import (
-	"context"
 	"net/http"
 	"path"
 	"sync"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/rayark/zin/v2/middleware"
 )
 
 type StdMiddlware func(http.Handler) http.Handler
@@ -97,7 +97,7 @@ type RegisterFunc func(path string, handle httprouter.Handle)
 
 func (g *MuxGroup) R(r RegisterFunc, p string, handle httprouter.Handle) {
 	route := g.Path(p)
-	m := safeAppend(g.middlewares, addRouteToCtxMiddleware(route))
+	m := safeAppend(g.middlewares, middleware.AddRouteToContext(route))
 	r(route, makePooledHandle(m, handle))
 }
 
@@ -110,28 +110,6 @@ func (g *MuxGroup) NotFound(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		handle(w, r, nil)
 	})
-}
-
-type zinContextKey int
-
-const MatchedRoutePathKey zinContextKey = iota
-
-// TODO refactor to middleware package
-func addRouteToCtxMiddleware(route string) Middleware {
-	return func(h httprouter.Handle) httprouter.Handle {
-		return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-			ctx := r.Context()
-			ctx = context.WithValue(ctx, MatchedRoutePathKey, route)
-
-			h(w, r.WithContext(ctx), p)
-		}
-	}
-}
-
-// TODO move with addRouteToCtxMiddleware
-func GetRouteFromCtx(ctx context.Context) (string, bool) {
-	route, ok := ctx.Value(MatchedRoutePathKey).(string)
-	return route, ok
 }
 
 func makePooledHandle(middlewares []Middleware, handle httprouter.Handle) httprouter.Handle {

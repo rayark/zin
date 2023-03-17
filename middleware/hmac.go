@@ -18,12 +18,11 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/rayark/zin/v2"
 )
 
 // HMACSHA1Signer returns a middleware wrapper to add hmac signing string in
 // response header
-func HMACSHA1Signer(hmacHeaderKey, nounceHeaderKey string, secret []byte) zin.Middleware {
+func HMACSHA1Signer(hmacHeaderKey, nounceHeaderKey string, secret []byte) middleware {
 	return func(h httprouter.Handle) httprouter.Handle {
 		return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 			deferWriter := NewDeferWriter(w)

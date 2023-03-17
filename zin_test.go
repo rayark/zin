@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/rayark/zin/v2/middleware"
 )
 
 func TestMakeHandle(t *testing.T) {
@@ -574,7 +575,7 @@ func TestMatchedRoutePathKey(t *testing.T) {
 	group := NewGroup("/")
 	group.R(router.GET, testRoute, func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		ctx := r.Context()
-		matchedRoute = ctx.Value(MatchedRoutePathKey).(string)
+		matchedRoute = ctx.Value(middleware.MatchedRoutePathKey).(string)
 	})
 
 	r, err := http.NewRequest("GET", "http://example.com/a/aaa", nil)

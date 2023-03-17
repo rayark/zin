@@ -9,7 +9,7 @@
  * unless otherwise prior agreed by Rayark Inc. in writing.
  */
 
-package middleware
+package middleware_test
 
 import (
 	"compress/gzip"
@@ -21,6 +21,7 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/rayark/zin/v2"
+	. "github.com/rayark/zin/v2/middleware"
 )
 
 func middlewareCompressorTest(t *testing.T, reqHeaders map[string]string, respBody string) *httptest.ResponseRecorder {

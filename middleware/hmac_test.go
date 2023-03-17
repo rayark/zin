@@ -9,9 +9,11 @@
  * unless otherwise prior agreed by Rayark Inc. in writing.
  */
 
-package middleware
+package middleware_test
 
 import (
+	"crypto/hmac"
+	"crypto/sha1"
 	"encoding/hex"
 	"net/http"
 	"net/http/httptest"
@@ -19,6 +21,7 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/rayark/zin/v2"
+	. "github.com/rayark/zin/v2/middleware"
 )
 
 const (
@@ -105,4 +108,10 @@ func TestHMACSignatureWithNounce(t *testing.T) {
 	if string(rec.Body.Bytes()) != bodyContent {
 		t.Fatalf("content body inconsistent")
 	}
+}
+
+func generateSignature(msg, key []byte) string {
+	h := hmac.New(sha1.New, key)
+	h.Write(msg)
+	return "sha1=" + hex.EncodeToString(h.Sum(nil))
 }
